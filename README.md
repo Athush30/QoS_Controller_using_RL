@@ -63,16 +63,14 @@ source venv/bin/activate
 ## 📁 Project Structure
 
 ```
-qos-rl-controller/
+project/
 ├── env.py              # Simulated environment for training
 ├── utils.py            # Helper functions for simulation & rewards
 ├── agent.py            # DQN-based RL agent implementation
 ├── main.py             # Training script
 ├── qos_controller.py   # QoS logic with tc commands
 ├── packet_sniffer.py   # Packet capture & feature extraction
-├── deploy.py           # Real-time deployment using trained model
-├── requirements.txt    # Python dependencies
-└── README.md           # Project documentation
+└── deploy.py           # Real-time deployment using trained model 
 ```
 
 ---
