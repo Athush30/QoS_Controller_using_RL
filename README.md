@@ -1,24 +1,36 @@
-# 🧠 QoS Controller with Reinforcement Learning 🚀
 
-This project implements a **Reinforcement Learning (RL)**-based **Quality of Service (QoS)** controller for network traffic management. It uses a **Deep Q-Network (DQN)** to classify network packets and dynamically assign QoS priorities to optimize bandwidth allocation. The system is trained in a simulated environment and deployed to process real network packets in real-time, applying bandwidth limits using Linux `tc` (traffic control) commands.
+# 🧠 Real-Time QoS Controller with Reinforcement Learning 🚀
+
+This project implements a **Reinforcement Learning (RL)**-based **Quality of Service (QoS)** controller that dynamically manages bandwidth allocation on a Linux network interface. It uses a **Deep Q-Network (DQN)** agent to analyze **live network performance** (delay, loss, bandwidth) and apply **traffic shaping rules** using Linux `tc`.
 
 ---
 
 ## 📌 Overview
 
-The QoS Controller uses a **DQN-based RL agent** to classify network packets based on features such as packet size, protocol (TCP/UDP), and port category. The agent assigns one of three QoS priorities: 🟥 **High**, 🟨 **Medium**, and 🟦 **Low**. These priorities correspond to bandwidth limits enforced via `tc`.
+The QoS controller interacts with a real-time environment where it:
 
-🧪 Trained in simulation ➡️ 🚦 Deployed on real packets ➡️ 📉 Applies bandwidth control dynamically.
+🔎 **Measures**:
+- Ping delay and packet loss to various IPs (Google, Cloudflare, local devices, etc.)
+- Available bandwidth using `iperf3`
+
+🧠 **Learns**:
+- How to adjust traffic shaping rules (high/med/low bandwidth) using DQN
+- Improves behavior based on rewards calculated from delay and loss
+
+⚙️ **Controls**:
+- Network interface shaping using Linux `tc`
+- Adapts bandwidth limits dynamically during deployment
 
 ---
 
 ## ✨ Features
 
-✅ Simulated environment for training RL agent  
-✅ Real-time packet processing using Scapy  
-✅ Dynamic QoS assignment with `tc` command  
-✅ Online learning during live deployment  
-✅ Modular and easy-to-understand code structure
+✅ Real-time environment using ping + iperf3  
+✅ Deep Q-Network (DQN) RL agent  
+✅ Reward feedback from network performance (delay, loss, bandwidth)  
+✅ Dynamic QoS enforcement using Linux `tc`  
+✅ Modular and clean code structure  
+✅ Extendable to handle packet-level decisions, traffic types, or advanced QoS
 
 ---
 
@@ -26,17 +38,18 @@ The QoS Controller uses a **DQN-based RL agent** to classify network packets bas
 
 **Python:** 3.8+  
 **Dependencies:**
-
 - `numpy`
 - `torch`
-- `scapy`
+- `subprocess` (standard)
+- `json` (standard)
+- `iperf3` installed on system
 
 **System:**
+- Linux OS with `tc` (`sudo apt install iproute2`)
+- Network interface (e.g., `eth0`, configurable)
 
-- Linux OS with `tc` (traffic control)
-- Network interface: `eth0` (configurable)
-
-**Hardware:** Standard machine with network access
+**Optional:**
+- iPerf3 server (default: `iperf.he.net`, or your own)
 
 ---
 
@@ -44,16 +57,16 @@ The QoS Controller uses a **DQN-based RL agent** to classify network packets bas
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/qos-rl-controller.git
-cd qos-rl-controller
+git clone https://github.com/your-username/rl-qos-controller.git
+cd rl-qos-controller
 
-# 2. Install dependencies
+# 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Install tc (if not already installed)
+# 3. Install tc if not available
 sudo apt-get install iproute2
 
-# 4. (Optional) Setup a virtual environment
+# 4. (Optional) Create virtual environment
 python -m venv venv
 source venv/bin/activate
 ```
@@ -64,76 +77,67 @@ source venv/bin/activate
 
 ```
 project/
-├── env.py              # Simulated environment for training
-├── utils.py            # Helper functions for simulation & rewards
+├── env.py              # Real-time network environment with ping/bandwidth metrics
 ├── agent.py            # DQN-based RL agent implementation
 ├── main.py             # Training script
-├── qos_controller.py   # QoS logic with tc commands
-├── packet_sniffer.py   # Packet capture & feature extraction
-└── deploy.py           # Real-time deployment using trained model 
+├── utils.py            # Optional: helpers (simulate packet, reward logic)
+├── deploy.py           # (Future) Real-time deployment loop
 ```
 
 ---
 
 ## 🚀 Usage
 
-### 📊 Training the Model
-
+### 📊 Train the RL Agent
 ```bash
 python main.py
 ```
-
-- Trains the RL agent over 1000 episodes
+- Trains over 1000 episodes
+- Uses live network metrics as environment
+- Adjusts `tc` QoS settings per action
 - Model saved as `model.pt`
-- Progress printed every 100 episodes
 
-### 🔧 Deploying the QoS Controller
+### 🧠 Example Reward Logic
 
-```bash
-sudo python deploy.py
-```
-
-⚠️ `sudo` is required for packet sniffing and applying `tc` rules.
-
-- Captures real-time packets
-- Classifies using the RL model
-- Applies bandwidth control
-- Logs QoS actions and rewards
+- **+1** if delay improves and loss < 2%  
+- **0** if delay stable and loss reasonable  
+- **-1** if delay worsens or high packet loss
 
 ---
 
-## ⚙️ How It Works
+## 🔧 Customization
 
-### 🏋️‍♂️ Training Phase
-
-- `env.py`: Simulates packets with features (size, protocol, port)
-- `agent.py`: Deep Q-Network selects QoS action
-- Rewards favor efficient classification (e.g., UDP + small size = high priority)
-- Model saved as `model.pt`
-
-### 🛰️ Deployment Phase
-
-- `packet_sniffer.py`: Extracts live packet features
-- `agent.py`: Loads model, selects QoS level
-- `qos_controller.py`: Applies bandwidth via `tc`
-- Logs actions and supports basic online learning
+- **Change interface:** in `env.py`, e.g., `iface='wlan0'`
+- **Add targets:** edit `self.targets` in `RealQoSEnv`
+- **Change reward rules:** edit `compute_reward()`
+- **Log training:** add `CSV` or `JSON` logger in `main.py`
 
 ---
 
 ## 🔮 Potential Improvements
 
-- Add real-time performance metrics (latency, congestion)
-- Expand feature set (IP addresses, packet frequency)
-- Implement DQN target network for stability
-- Support multiple interfaces and finer QoS levels
-- Better error handling and metrics visualization
+- Add jitter, RTT variance, or real packet features (via Scapy)
+- Deploy agent on live routers or IoT gateways
+- One-hot encode traffic types as part of RL state
+- Train using simulator (Mininet) and then apply to real-time
+- Add GUI or monitoring dashboard
+
+---
+
+## ⚙️ Example Target Set
+
+- `8.8.8.8` – Google DNS  
+- `1.1.1.1` – Cloudflare  
+- `192.168.1.1` – Local Router  
+- `www.youtube.com` – Streaming traffic  
+- `192.168.1.50` – IoT Device  
 
 ---
 
 ## 📝 License
 
-This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+This project is licensed under the **MIT License**. See the LICENSE file for details.
 
 ---
 
-🌐 **Happy networking with ML!**
+## 🌐 Happy networking with Reinforcement Learning! 🚦📡
