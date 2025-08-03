@@ -77,11 +77,13 @@ source venv/bin/activate
 
 ```
 project/
-├── env.py              # Real-time network environment with ping/bandwidth metrics
+├── env.py              # Simulated environment for training
+├── utils.py            # Helper functions for simulation & rewards
 ├── agent.py            # DQN-based RL agent implementation
 ├── main.py             # Training script
-├── utils.py            # Optional: helpers (simulate packet, reward logic)
-├── deploy.py           # (Future) Real-time deployment loop
+├── qos_controller.py   # QoS logic with tc commands
+├── packet_sniffer.py   # Packet capture & feature extraction
+└── deploy.py           # Real-time deployment using trained model 
 ```
 
 ---
