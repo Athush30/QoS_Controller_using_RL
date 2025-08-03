@@ -4,8 +4,8 @@ import json
 import os
 import random
 
-class RealQoSEnv:
-    def __init__(self, iface='eth0', iperf_server='iperf.he.net'):
+class QoSEnv:
+    def __init__(self, iface='wlp0s20f3', iperf_server='iperf.volia.net'):
         self.iface = iface
         self.iperf_server = iperf_server
 
@@ -17,7 +17,6 @@ class RealQoSEnv:
             ("192.168.1.1", "lan"),          # Local Router
             ("192.168.1.50", "iot"),         # Local IoT device
             ("www.youtube.com", "video"),    # Streaming
-            ("www.netflix.com", "video"),    # Streaming
             ("www.facebook.com", "social"),  # Social media
             ("twitter.com", "social"),       # Social media
             ("www.github.com", "dev"),       # Developer platform
@@ -58,8 +57,12 @@ class RealQoSEnv:
 
     def measure_ping(self, host):
         try:
-            # Send 10 pings, get statistics
-            result = subprocess.run(["ping", "-c", "10", host], capture_output=True, text=True, timeout=15)
+            result = subprocess.run(
+                ["ping", "-c", "4", host],
+                capture_output=True,
+                text=True,
+                timeout=8
+            )
             output = result.stdout
 
             # Extract avg delay (ms)
@@ -78,24 +81,46 @@ class RealQoSEnv:
                 loss_percent = 1.0
 
             return avg_delay, loss_percent
+        except subprocess.TimeoutExpired:
+            print(f"[Ping Error] Ping to {host} timed out.")
+            return 1.0, 1.0
         except Exception as e:
             print(f"[Ping Error] {e}")
             return 1.0, 1.0
 
     def measure_bandwidth(self):
         try:
-            # Run iperf3 test for 5 seconds
             result = subprocess.run(
                 ["iperf3", "-c", self.iperf_server, "-J", "-t", "5"],
                 capture_output=True, text=True, timeout=15
             )
+            if result.returncode != 0:
+                raise RuntimeError(f"iperf3 failed: {result.stderr}")
+
             data = json.loads(result.stdout)
-            bps = data['end']['sum_received']['bits_per_second']
+
+            bps = (
+                data.get('end', {})
+                    .get('sum_received', {})
+                    .get('bits_per_second')
+            )
+            if bps is None:
+                bps = (
+                    data.get('end', {})
+                        .get('sum', {})
+                        .get('bits_per_second')
+                )
+
+            if bps is None:
+                raise ValueError("No bandwidth data found in iperf3 output.")
+
             mbps = round(bps / 1_000_000, 2)
             return mbps
+
         except Exception as e:
             print(f"[iPerf3 Error] {e}")
-            return 0.0
+            print("Raw iperf3 output:", result.stdout if 'result' in locals() else 'No output')
+            return 5.0
 
     def apply_qos(self, action):
         # Remove existing rules to avoid conflicts
