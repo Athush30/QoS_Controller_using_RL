@@ -16,7 +16,7 @@ def train():
             state = next_state
         if ep % 100 == 0:
             print(f"Episode {ep} complete")
-    torch.save(agent.model.state_dict(), "C:/Users/thusa.THUSA/Downloads/New folder (5)/model.pt")
+    torch.save(agent.model.state_dict(), "/home/thusa/Downloads/rl/dqn_model.pt")
 
 if __name__ == "__main__":
     train()
